@@ -9,8 +9,10 @@ Ishlatish:
        python clock_bot.py
 
 ENV o'zgaruvchilar (Render → Environment):
-  API_ID, API_HASH, SESSION_STR, OWNER_ID
+  API_ID, API_HASH, SESSION_STR
   PORT (ixtiyoriy, default 8080)
+
+Boshqarish: Telegramda "Saved Messages" (o'zingizga xabar) ga komanda yozing.
 """
 
 import sys
@@ -55,7 +57,6 @@ logger = logging.getLogger(__name__)
 API_ID      = int(os.environ["API_ID"])
 API_HASH    = os.environ["API_HASH"]
 SESSION_STR = os.environ["SESSION_STR"]
-OWNER_ID    = int(os.environ["OWNER_ID"])
 PORT        = int(os.environ.get("PORT", 8080))
 
 TIMEZONE = ZoneInfo("Asia/Tashkent")
@@ -121,16 +122,10 @@ async def update_profile_name():
 
         await asyncio.sleep(60)
 
-# ─── OWNER TEKSHIRUVI ────────────────────────────────────────────────────────
-
-def is_owner(message: Message) -> bool:
-    return message.from_user and message.from_user.id == OWNER_ID
-
 # ─── KOMANDALAR ──────────────────────────────────────────────────────────────
 
-@app.on_message(filters.command("start") & filters.private)
+@app.on_message(filters.command("start") & filters.me)
 async def cmd_start(client, message: Message):
-    if not is_owner(message): return
     await message.reply(
         "👋 Salom! Jonli soat boti.\n\n"
         "📋 Komandalar:\n"
@@ -141,9 +136,8 @@ async def cmd_start(client, message: Message):
         "/resume — Soatni davom ettirish"
     )
 
-@app.on_message(filters.command("style") & filters.private)
+@app.on_message(filters.command("style") & filters.me)
 async def cmd_style(client, message: Message):
-    if not is_owner(message): return
     state["waiting"] = "style"
     await message.reply(
         "🔤 Har bir raqam va belgi uchun xarita yuboring.\n\n"
@@ -153,9 +147,8 @@ async def cmd_style(client, message: Message):
         "Bekor qilish: /cancel"
     )
 
-@app.on_message(filters.command("bio") & filters.private)
+@app.on_message(filters.command("bio") & filters.me)
 async def cmd_bio(client, message: Message):
-    if not is_owner(message): return
     current = state["bio_extra"] or "(bo'sh)"
     state["waiting"] = "bio"
     await message.reply(
@@ -165,9 +158,8 @@ async def cmd_bio(client, message: Message):
         "Bekor qilish: /cancel"
     )
 
-@app.on_message(filters.command("status") & filters.private)
+@app.on_message(filters.command("status") & filters.me)
 async def cmd_status(client, message: Message):
-    if not is_owner(message): return
     time_raw = current_uzb_time()
     active_map = state["char_map"] if state["char_map"] else DEFAULT_MAP
     time_str = translate_time(time_raw, active_map)
@@ -180,31 +172,27 @@ async def cmd_status(client, message: Message):
         f"Harf xaritasi:\n{map_display}"
     )
 
-@app.on_message(filters.command("stop") & filters.private)
+@app.on_message(filters.command("stop") & filters.me)
 async def cmd_stop(client, message: Message):
-    if not is_owner(message): return
     state["clock_on"] = False
     await message.reply("⏸ Soat to'xtatildi.")
 
-@app.on_message(filters.command("resume") & filters.private)
+@app.on_message(filters.command("resume") & filters.me)
 async def cmd_resume(client, message: Message):
-    if not is_owner(message): return
     state["clock_on"] = True
     await message.reply("▶️ Soat qayta boshlandi.")
 
-@app.on_message(filters.command("cancel") & filters.private)
+@app.on_message(filters.command("cancel") & filters.me)
 async def cmd_cancel(client, message: Message):
-    if not is_owner(message): return
     state["waiting"] = None
     await message.reply("❌ Bekor qilindi.")
 
 # ─── MATN XABARLARI ──────────────────────────────────────────────────────────
 
-@app.on_message(filters.private & filters.text & ~filters.command(
+@app.on_message(filters.me & filters.text & ~filters.command(
     ["start","style","bio","status","stop","resume","cancel"]
 ))
 async def handle_text(client, message: Message):
-    if not is_owner(message): return
 
     if state["waiting"] == "style":
         lines = message.text.strip().split("\n")
