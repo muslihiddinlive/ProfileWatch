@@ -1,16 +1,5 @@
 """
 Jonli Soat Boti — clock_bot.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Ishlatish:
-  1) SESSION_STR olish uchun (bir martalik, local):
-       python clock_bot.py --get-session
-
-  2) Botni ishga tushurish (Render va boshqa serverlar):
-       python clock_bot.py
-
-ENV o'zgaruvchilar (Render → Environment):
-  API_ID, API_HASH, SESSION_STR, OWNER_ID
-  PORT (ixtiyoriy, default 8080)
 """
 
 import sys
@@ -21,7 +10,6 @@ if "--get-session" in sys.argv:
 
     print("=" * 50)
     print("  SESSION_STR generatsiya qilish")
-    print("  (Bu faqat bir marta ishlatiladi)")
     print("=" * 50)
     api_id   = int(input("API_ID   : "))
     api_hash = input("API_HASH : ").strip()
@@ -29,7 +17,7 @@ if "--get-session" in sys.argv:
     with Client("_tmp_session", api_id=api_id, api_hash=api_hash) as tmp:
         session_str = tmp.export_session_string()
 
-    print("\n✅ SESSION_STR mana — Render ENV ga kiriting:\n")
+    print("\n✅ SESSION_STR:\n")
     print(session_str)
     print()
     sys.exit(0)
@@ -103,7 +91,6 @@ def current_uzb_time() -> str:
     return datetime.now(TIMEZONE).strftime("%H:%M")
 
 async def update_profile_name():
-    """Har daqiqada profil ismini yangilaydi."""
     while True:
         try:
             if state["clock_on"]:
@@ -135,7 +122,7 @@ async def cmd_start(client, message: Message):
         "👋 Salom! Jonli soat boti.\n\n"
         "📋 Komandalar:\n"
         "/style — Shrift belgilarini sozlash\n"
-        "/bio — Bio ga qo'shimcha matn qo'shish\n"
+        "/bio — Bio ga matn qo'shish\n"
         "/status — Joriy holat\n"
         "/stop — Soatni to'xtatish\n"
         "/resume — Soatni davom ettirish"
@@ -149,7 +136,6 @@ async def cmd_style(client, message: Message):
         "🔤 Har bir raqam va belgi uchun xarita yuboring.\n\n"
         "Namuna:\n"
         "0=𝟎\n1=𝟏\n2=𝟐\n3=𝟑\n4=𝟒\n5=𝟓\n6=𝟔\n7=𝟕\n8=𝟖\n9=𝟗\n:=⁚\n\n"
-        "Siz istagan emoji yoki belgi ishlatishingiz mumkin!\n"
         "Bekor qilish: /cancel"
     )
 
@@ -215,12 +201,12 @@ async def handle_text(client, message: Message):
         for line in lines:
             line = line.strip()
             if "=" not in line:
-                errors.append(f"⚠️ Format xato: `{line}` (= belgisi yo'q)")
+                errors.append(f"⚠️ Format xato: {line}")
                 continue
             key, _, val = line.partition("=")
             key, val = key.strip(), val.strip()
             if not key or not val:
-                errors.append(f"⚠️ Bo'sh qiymat: `{line}`")
+                errors.append(f"⚠️ Bo'sh qiymat: {line}")
                 continue
             new_map[key] = val
 
@@ -232,9 +218,7 @@ async def handle_text(client, message: Message):
             state["last_name"] = ""
             example = translate_time("12:34", new_map)
             err_msg = "\n".join(errors) if errors else ""
-            await message.reply(
-                f"✅ Shrift saqlandi!\nNamuna (12:34): {example}\n{err_msg}"
-            )
+            await message.reply(f"✅ Shrift saqlandi!\nNamuna (12:34): {example}\n{err_msg}")
         else:
             await message.reply("❌ Hech qanday to'g'ri qiymat topilmadi.")
         return
@@ -245,9 +229,7 @@ async def handle_text(client, message: Message):
             bio_text = ""
 
         if len(bio_text) > 70:
-            await message.reply(
-                f"❌ Bio uzun! {len(bio_text)} belgi, maksimal 70.\nQisqartiring."
-            )
+            await message.reply(f"❌ Bio uzun! {len(bio_text)} belgi, maksimal 70.")
             return
 
         state["bio_extra"] = bio_text
@@ -257,7 +239,7 @@ async def handle_text(client, message: Message):
             bio_display = bio_text or "(bo'sh)"
             await message.reply(f"✅ Bio yangilandi: {bio_display}")
         except Exception as e:
-            await message.reply(f"⚠️ Telegramga yuborganda xato: {e}")
+            await message.reply(f"⚠️ Xato: {e}")
         return
 
     await message.reply("ℹ️ Biror komanda ishlating: /start")
@@ -269,9 +251,11 @@ def run_flask():
     flask_app.run(host="0.0.0.0", port=PORT)
 
 async def main():
+    # Python 3.10+ da event loop muammosini hal qilish
+    loop = asyncio.get_event_loop()
     await app.start()
     logger.info("Pyrogram sessiyasi boshlandi.")
-    asyncio.get_event_loop().create_task(update_profile_name())
+    loop.create_task(update_profile_name())
     logger.info("Jonli soat vazifasi boshlandi.")
     await idle()
     await app.stop()
@@ -279,4 +263,5 @@ async def main():
 if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
     logger.info(f"Flask {PORT} portda ishga tushdi.")
+    # Python 3.14 uchun to'g'ri usul
     asyncio.run(main())
