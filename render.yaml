@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: clock-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python clock_bot.py
+    envVars:
+      - key: API_ID
+        sync: false
+      - key: API_HASH
+        sync: false
+      - key: SESSION_STR
+        sync: false
+      - key: OWNER_ID
+        sync: false
