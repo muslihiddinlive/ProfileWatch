@@ -172,11 +172,13 @@ async def cmd_status(client, message: Message):
     active_map = state["char_map"] if state["char_map"] else DEFAULT_MAP
     time_str = translate_time(time_raw, active_map)
     map_display = "\n".join([f"  {k} → {v}" for k, v in active_map.items()])
+    bio_text = state["bio_extra"] or "(yo'q)"
+    clock_status = "Yoqiq ✅" if state["clock_on"] else "O'chiq ❌"
     await message.reply(
         f"🕐 Joriy UZB vaqti: {time_raw}\n"
         f"🔤 Shrift bilan: {time_str}\n"
-        f"📝 Bio: {state['bio_extra'] or '(yo\\'q)'}\n"
-        f"⚙️ Soat: {'Yoqiq ✅' if state['clock_on'] else 'O\\'chiq ❌'}\n\n"
+        f"📝 Bio: {bio_text}\n"
+        f"⚙️ Soat: {clock_status}\n\n"
         f"Harf xaritasi:\n{map_display}"
     )
 
@@ -252,7 +254,8 @@ async def handle_text(client, message: Message):
         state["waiting"] = None
         try:
             await app.update_profile(bio=bio_text)
-            await message.reply(f"✅ Bio yangilandi: {bio_text or '(bo\\'sh)'}")
+            bio_display = bio_text or "(bo'sh)"
+            await message.reply(f"✅ Bio yangilandi: {bio_display}")
         except Exception as e:
             await message.reply(f"⚠️ Telegramga yuborganda xato: {e}")
         return
